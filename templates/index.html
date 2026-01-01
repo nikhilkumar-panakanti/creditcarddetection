@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Default Prediction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .section-title {
+            font-size: 1.4em;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .results-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .result-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result-card.success {
+            border-left: 5px solid #10b981;
+        }
+        
+        .result-card.warning {
+            border-left: 5px solid #f59e0b;
+        }
+        
+        .result-card.danger {
+            border-left: 5px solid #ef4444;
+        }
+        
+        .prediction-label {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .prediction-label.no-default {
+            color: #10b981;
+        }
+        
+        .prediction-label.default {
+            color: #ef4444;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .probability-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .probability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #ef4444 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.5s ease;
+        }
+        
+        .model-info {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 968px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💳 Credit Card Default Predictor</h1>
+            <p>Advanced ML-based credit risk assessment system</p>
+        </div>
+        
+        <div class="content">
+            <div class="form-section">
+                <h2 class="section-title">Customer Information</h2>
+                
+                <form id="predictionForm">
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="LIMIT_BAL">Credit Limit (NT$)</label>
+                            <input type="number" id="LIMIT_BAL" name="LIMIT_BAL" value="200000" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="AGE">Age</label>
+                            <input type="number" id="AGE" name="AGE" value="35" min="18" max="100" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="SEX">Gender</label>
+                            <select id="SEX" name="SEX" required>
+                                <option value="1">Male</option>
+                                <option value="2" selected>Female</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="EDUCATION">Education</label>
+                            <select id="EDUCATION" name="EDUCATION" required>
+                                <option value="1">Graduate School</option>
+                                <option value="2" selected>University</option>
+                                <option value="3">High School</option>
+                                <option value="4">Others</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="MARRIAGE">Marital Status</label>
+                        <select id="MARRIAGE" name="MARRIAGE" required>
+                            <option value="1" selected>Married</option>
+                            <option value="2">Single</option>
+                            <option value="3">Others</option>
+                        </select>
+                    </div>
+                    
+                    <h3 class="section-title" style="margin-top: 30px;">Payment Status (Past 6 Months)</h3>
+                    <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">
+                        -1 = Payment on time, 0 = No delay, 1+ = Months of delay
+                    </p>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="PAY_0">Last Month</label>
+                            <input type="number" id="PAY_0" name="PAY_0" value="0" min="-2" max="8" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="PAY_2">2 Months Ago</label>
+                            <input type="number" id="PAY_2" name="PAY_2" value="0" min="-2" max="8" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="PAY_3">3 Months Ago</label>
+                            <input type="number" id="PAY_3" name="PAY_3" value="0" min="-2" max="8" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="PAY_4">4 Months Ago</label>
+                            <input type="number" id="PAY_4" name="PAY_4" value="0" min="-2" max="8" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="PAY_5">5 Months Ago</label>
+                            <input type="number" id="PAY_5" name="PAY_5" value="-1" min="-2" max="8" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="PAY_6">6 Months Ago</label>
+                            <input type="number" id="PAY_6" name="PAY_6" value="-1" min="-2" max="8" required>
+                        </div>
+                    </div>
+                    
+                    <h3 class="section-title" style="margin-top: 30px;">Bill & Payment Amounts (NT$)</h3>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="BILL_AMT1">Bill Month 1</label>
+                            <input type="number" id="BILL_AMT1" name="BILL_AMT1" value="50000" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="PAY_AMT1">Payment Month 1</label>
+                            <input type="number" id="PAY_AMT1" name="PAY_AMT1" value="2000" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="BILL_AMT2">Bill Month 2</label>
+                            <input type="number" id="BILL_AMT2" name="BILL_AMT2" value="48000" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="PAY_AMT2">Payment Month 2</label>
+                            <input type="number" id="PAY_AMT2" name="PAY_AMT2" value="3000" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="BILL_AMT3">Bill Month 3</label>
+                            <input type="number" id="BILL_AMT3" name="BILL_AMT3" value="45000" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="PAY_AMT3">Payment Month 3</label>
+                            <input type="number" id="PAY_AMT3" name="PAY_AMT3" value="2500" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="BILL_AMT4">Bill Month 4</label>
+                            <input type="number" id="BILL_AMT4" name="BILL_AMT4" value="43000" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="PAY_AMT4">Payment Month 4</label>
+                            <input type="number" id="PAY_AMT4" name="PAY_AMT4" value="3000" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="BILL_AMT5">Bill Month 5</label>
+                            <input type="number" id="BILL_AMT5" name="BILL_AMT5" value="40000" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="PAY_AMT5">Payment Month 5</label>
+                            <input type="number" id="PAY_AMT5" name="PAY_AMT5" value="2000" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="BILL_AMT6">Bill Month 6</label>
+                            <input type="number" id="BILL_AMT6" name="BILL_AMT6" value="38000" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="PAY_AMT6">Payment Month 6</label>
+                            <input type="number" id="PAY_AMT6" name="PAY_AMT6" value="2000" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="model">ML Model</label>
+                        <select id="model" name="model">
+                            <option value="Support Vector Machine">Support Vector Machine (Best)</option>
+                            <option value="Gradient Boosting">Gradient Boosting</option>
+                            <option value="Random Forest">Random Forest</option>
+                            <option value="Logistic Regression">Logistic Regression</option>
+                            <option value="Neural Network">Neural Network</option>
+                            <option value="K-Nearest Neighbors">K-Nearest Neighbors</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="predictBtn">
+                        🔮 Predict Default Risk
+                    </button>
+                </form>
+            </div>
+            
+            <div class="results-section">
+                <h2 class="section-title">Prediction Results</h2>
+                
+                <div id="results">
+                    <div class="result-card" style="text-align: center; color: #999;">
+                        <p style="font-size: 1.2em; margin-top: 80px;">
+                            👈 Enter customer information and click "Predict Default Risk" to see results
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('predictBtn');
+            const resultsDiv = document.getElementById('results');
+            
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.textContent = '⏳ Analyzing...';
+            resultsDiv.innerHTML = '<div class="loading">🔄 Processing prediction...</div>';
+            
+            // Collect form data
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayResults(result.result);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="error">
+                        <strong>⚠️ Error:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔮 Predict Default Risk';
+            }
+        });
+        
+        function displayResults(result) {
+            const resultsDiv = document.getElementById('results');
+            const isDefault = result.prediction === 1;
+            const cardClass = isDefault ? 'danger' : 'success';
+            const labelClass = isDefault ? 'default' : 'no-default';
+            const icon = isDefault ? '⚠️' : '✅';
+            
+            const defaultProb = (result.probability_default * 100).toFixed(2);
+            const noDefaultProb = (result.probability_no_default * 100).toFixed(2);
+            
+            resultsDiv.innerHTML = `
+                <div class="result-card ${cardClass}">
+                    <div class="prediction-label ${labelClass}">
+                        ${icon} ${result.prediction_label}
+                    </div>
+                    
+                    <div style="margin: 20px 0;">
+                        <strong>Default Risk Level:</strong>
+                        <div class="probability-bar">
+                            <div class="probability-fill" style="width: ${defaultProb}%">
+                                ${defaultProb}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric">
+                        <span class="metric-label">Probability of Default:</span>
+                        <span class="metric-value" style="color: #ef4444;">${defaultProb}%</span>
+                    </div>
+                    
+                    <div class="metric">
+                        <span class="metric-label">Probability of No Default:</span>
+                        <span class="metric-value" style="color: #10b981;">${noDefaultProb}%</span>
+                    </div>
+                    
+                    <div class="metric">
+                        <span class="metric-label">Confidence Level:</span>
+                        <span class="metric-value">${(result.confidence * 100).toFixed(2)}%</span>
+                    </div>
+                    
+                    <div class="model-info">
+                        <div class="metric">
+                            <span class="metric-label">Model Used:</span>
+                            <span class="metric-value">${result.model_used}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-card" style="background: #f0f9ff; border-left: 5px solid #3b82f6;">
+                    <h3 style="color: #3b82f6; margin-bottom: 15px;">💡 Recommendation</h3>
+                    <p style="line-height: 1.6; color: #333;">
+                        ${isDefault 
+                            ? `<strong>High Risk Customer:</strong> This customer shows ${defaultProb}% probability of default. 
+                               Recommend implementing strict credit monitoring, reducing credit limit, or requiring collateral.`
+                            : `<strong>Low Risk Customer:</strong> This customer shows only ${defaultProb}% probability of default. 
+                               Customer appears financially stable. Can consider credit limit increase if requested.`
+                        }
+                    </p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
